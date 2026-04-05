@@ -458,6 +458,56 @@ def normalise_text(text: str) -> str:
     return " ".join(cleaned.split())
 
 
+def extract_date_near_element(element) -> str | None:
+    """
+    Try to find a publication date near an <a> element in the DOM.
+    Checks: sibling text, parent text, <time> tags, common date classes.
+    Returns ISO date string or None.
+    """
+    from dateutil import parser as dateparser
+
+    # 1. Look for <time> tag nearby (sibling or parent's children)
+    parent = element.parent
+    if parent:
+        time_tag = parent.find("time")
+        if time_tag:
+            dt_attr = time_tag.get("datetime", "") or time_tag.get_text(strip=True)
+            if dt_attr:
+                try:
+                    return dateparser.parse(dt_attr, dayfirst=True).replace(tzinfo=timezone.utc).isoformat()
+                except (ValueError, TypeError):
+                    pass
+
+    # 2. Look for date-like classes in siblings or parent
+    if parent:
+        for cls_pattern in ["date", "time", "published", "posted", "meta"]:
+            date_el = parent.find(class_=lambda c: c and cls_pattern in c.lower() if c else False)
+            if date_el:
+                text = date_el.get_text(strip=True)
+                try:
+                    return dateparser.parse(text, dayfirst=True).replace(tzinfo=timezone.utc).isoformat()
+                except (ValueError, TypeError):
+                    pass
+
+    # 3. Regex for common date patterns in surrounding text
+    search_text = parent.get_text(" ", strip=True) if parent else ""
+    # Australian format: "5 Apr 2026", "05/04/2026", "5 April 2026", "2026-04-05"
+    date_patterns = [
+        r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}',
+        r'\d{4}-\d{2}-\d{2}',
+        r'\d{1,2}/\d{1,2}/\d{4}',
+    ]
+    for pat in date_patterns:
+        match = re.search(pat, search_text, re.IGNORECASE)
+        if match:
+            try:
+                return dateparser.parse(match.group(), dayfirst=True).replace(tzinfo=timezone.utc).isoformat()
+            except (ValueError, TypeError):
+                continue
+
+    return None
+
+
 def is_super_relevant(text: str) -> bool:
     """
     Filter relevance using taxonomy.
@@ -527,6 +577,18 @@ def save_article(conn, url, title, source, tier, topic, summary, published_at, f
     title_lower = title.lower()
     if any(re.search(pat, title_lower) for pat in _junk_patterns):
         return False
+    # Reject articles with extracted dates older than the export window
+    try:
+        from dateutil import parser as dateparser
+        pub_dt = dateparser.parse(published_at)
+        if pub_dt:
+            cutoff = datetime.now(timezone.utc) - timedelta(days=EXPORT_WINDOW_DAYS)
+            if pub_dt.tzinfo is None:
+                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+            if pub_dt < cutoff:
+                return False
+    except (ValueError, TypeError):
+        pass
     now = datetime.now(timezone.utc).isoformat()
     try:
         conn.execute(
@@ -709,9 +771,10 @@ def collect_tier2_regulatory(conn) -> int:
 
                 topic = classify_topic(title, summary)
                 fund_tags = tag_funds(title, summary)
-                pub_time = datetime.now(timezone.utc)
+                extracted_date = extract_date_near_element(link)
+                pub_time = extracted_date or datetime.now(timezone.utc).isoformat()
 
-                if save_article(conn, url, title, source_name, 2, topic, summary, pub_time.isoformat(), fund_tags):
+                if save_article(conn, url, title, source_name, 2, topic, summary, pub_time, fund_tags):
                     count += 1
         except Exception:
             print(f"  ⚠ {source_name}: parse error")
@@ -768,9 +831,10 @@ def collect_tier3_industry(conn) -> int:
 
                 topic = classify_topic(title, summary)
                 fund_tags = tag_funds(title, summary)
-                pub_time = datetime.now(timezone.utc)
+                extracted_date = extract_date_near_element(link)
+                pub_time = extracted_date or datetime.now(timezone.utc).isoformat()
 
-                if save_article(conn, url, title, source_name, 3, topic, summary, pub_time.isoformat(), fund_tags):
+                if save_article(conn, url, title, source_name, 3, topic, summary, pub_time, fund_tags):
                     count += 1
         except Exception:
             print(f"  ⚠ {source_name}: parse error")
@@ -829,9 +893,10 @@ def collect_tier4_newsrooms(conn) -> int:
                 fund_tags = tag_funds(title, summary)
                 if fund_id and fund_id not in fund_tags:
                     fund_tags.append(fund_id)
-                pub_time = datetime.now(timezone.utc)
+                extracted_date = extract_date_near_element(link)
+                pub_time = extracted_date or datetime.now(timezone.utc).isoformat()
 
-                if save_article(conn, url, title, newsroom_name, 4, topic, summary, pub_time.isoformat(), fund_tags):
+                if save_article(conn, url, title, newsroom_name, 4, topic, summary, pub_time, fund_tags):
                     count += 1
         except Exception:
             print(f"  ⚠ {newsroom_name}: parse error")
