@@ -52,8 +52,9 @@ HEADERS = {
 }
 
 REQUEST_DELAY = 1.5          # seconds between requests (polite crawling)
-COLLECTION_WINDOW_DAYS = 8   # look back slightly more than 7 days for overlap safety
-EXPORT_WINDOW_DAYS = 14      # articles shown in data.json
+COLLECTION_WINDOW_DAYS = 2   # daily run with 1-day overlap for safety
+EXPORT_WINDOW_DAYS = 30      # articles retained in data.json (rolling month)
+DIGEST_DEFAULT_DAYS = 7      # default window for email digest if no last_sent marker
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -412,6 +413,11 @@ def init_db(conn):
             PRIMARY KEY (article_id, fund_id),
             FOREIGN KEY (article_id) REFERENCES articles(article_id) ON DELETE CASCADE,
             FOREIGN KEY (fund_id) REFERENCES funds(fund_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS digest_state (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
         );
 
         CREATE INDEX IF NOT EXISTS idx_articles_collected_at ON articles(collected_at DESC);
