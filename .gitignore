@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Database
+super_news.db
+
+# Secrets
+config.json
+
+# Backups
+*.bak
+
+# Generated files
+data.json
+email_preview.html
+standalone.html
+
+# OS
+.DS_Store

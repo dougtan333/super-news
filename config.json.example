@@ -1,0 +1,8 @@
+{
+  "brevo_api_key": "YOUR_BREVO_API_KEY_HERE",
+  "sender_email": "your@email.com",
+  "sender_name": "SuperNews Digest",
+  "recipients": [{"email": "your@email.com", "name": "Your Name"}],
+  "subject_prefix": "SuperNews Weekly Digest",
+  "max_articles_per_tier": {"1": 8, "2": 5, "3": 4, "4": 4}
+}

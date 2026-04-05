@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperNews — Australian Superannuation Intelligence</title>
+<style>
+  :root {
+    --t1: #1a56db;   /* Media Articles — blue */
+    --t2: #057a55;   /* Regulatory — green */
+    --t3: #9f580a;   /* Industry Research — amber */
+    --t4: #6c2bd9;   /* Social/Blogs — purple */
+    --t1-bg: #eff6ff;
+    --t2-bg: #f0fdf4;
+    --t3-bg: #fffbeb;
+    --t4-bg: #faf5ff;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --sidebar-w: 260px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Top Bar ── */
+  header {
+    background: #0f172a;
+    color: white;
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+  header h1 span { color: #60a5fa; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #94a3b8; }
+  #generated-at { font-size: 12px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 6px; font-size: 13px;
+    font-weight: 500; cursor: pointer; border: none; text-decoration: none;
+    transition: all .15s;
+  }
+  .btn-primary { background: #3b82f6; color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-ghost { background: rgba(255,255,255,.1); color: white; border: 1px solid rgba(255,255,255,.15); }
+  .btn-ghost:hover { background: rgba(255,255,255,.2); }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: calc(100vh - 56px); }
+
+  /* ── Sidebar ── */
+  aside {
+    width: var(--sidebar-w);
+    background: white;
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar-section { margin-bottom: 24px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted); margin-bottom: 8px;
+  }
+
+  /* Fund selector */
+  #fund-search {
+    width: 100%; padding: 7px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; margin-bottom: 8px;
+    outline: none;
+  }
+  #fund-search:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+
+  .fund-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 6px;
+    cursor: pointer; font-size: 13px;
+    transition: background .1s;
+  }  .fund-option:hover { background: var(--bg); }
+  .fund-option.active { background: #eff6ff; color: var(--t1); font-weight: 600; }
+
+  .fund-type-group { margin-bottom: 4px; }
+  .fund-type-label {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    padding: 6px 8px 2px;
+  }
+
+  /* Tier filter */
+  .tier-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 8px; margin-bottom: 4px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    border: 1px solid transparent;
+    transition: all .15s;
+  }
+  .tier-toggle.active { opacity: 1; }
+  .tier-toggle:not(.active) { opacity: .45; }
+  .tier-toggle[data-tier="1"] { background: var(--t1-bg); color: var(--t1); border-color: #bfdbfe; }
+  .tier-toggle[data-tier="2"] { background: var(--t2-bg); color: var(--t2); border-color: #bbf7d0; }
+  .tier-toggle[data-tier="3"] { background: var(--t3-bg); color: var(--t3); border-color: #fde68a; }
+  .tier-toggle[data-tier="4"] { background: var(--t4-bg); color: var(--t4); border-color: #ddd6fe; }
+
+  .tier-count {
+    background: rgba(0,0,0,.08); border-radius: 20px;
+    padding: 1px 7px; font-size: 11px; font-weight: 700;
+  }
+
+  /* Topic filter */
+  .topic-chip {
+    display: inline-block; margin: 2px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; cursor: pointer;
+    background: #f1f5f9; color: #475569;
+    border: 1px solid #e2e8f0;
+    transition: all .15s;
+  }
+  .topic-chip.active { background: #1e293b; color: white; border-color: #1e293b; }
+
+  /* ── Main Content ── */
+  main {
+    flex: 1;
+    padding: 24px;
+    max-width: 900px;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex; gap: 16px; margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    flex: 1; min-width: 100px;
+  }
+  .stat-card .num { font-size: 24px; font-weight: 700; }
+  .stat-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Search */
+  .search-bar {
+    position: relative; margin-bottom: 20px;
+  }
+  #search {
+    width: 100%; padding: 10px 14px 10px 38px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; outline: none; background: white;
+  }
+  #search:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none;
+  }
+
+  /* Email digest builder */
+  .digest-bar {
+    background: #0f172a; color: white;
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; gap: 12px;
+  }
+  .digest-bar p { font-size: 13px; color: #94a3b8; }
+  .digest-bar strong { color: white; font-size: 14px; }
+  #digest-count { color: #60a5fa; font-weight: 700; }
+
+  /* Article Cards */
+  .tier-section { margin-bottom: 32px; }
+  .tier-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .tier-badge {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .tier-badge[data-tier="1"] { background: var(--t1-bg); color: var(--t1); }
+  .tier-badge[data-tier="2"] { background: var(--t2-bg); color: var(--t2); }
+  .tier-badge[data-tier="3"] { background: var(--t3-bg); color: var(--t3); }  .tier-badge[data-tier="4"] { background: var(--t4-bg); color: var(--t4); }
+  .tier-header-title { font-size: 15px; font-weight: 600; }
+  .tier-article-count { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+  .article-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 10px;
+    transition: box-shadow .15s, border-color .15s;
+    border-left: 3px solid transparent;
+  }
+  .article-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .article-card[data-tier="1"] { border-left-color: var(--t1); }
+  .article-card[data-tier="2"] { border-left-color: var(--t2); }
+  .article-card[data-tier="3"] { border-left-color: var(--t3); }
+  .article-card[data-tier="4"] { border-left-color: var(--t4); }
+
+  .article-card.selected { background: #f0f9ff; border-color: #7dd3fc; }
+
+  .article-meta {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px; flex-wrap: wrap;
+  }
+  .article-source { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .article-dot { color: var(--border); }
+  .article-date { font-size: 11px; color: var(--muted); }
+  .article-topic {
+    padding: 1px 7px; border-radius: 20px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+    background: #f1f5f9; color: #475569;
+    margin-left: auto;
+  }
+
+  .article-title {
+    font-size: 14px; font-weight: 600; line-height: 1.4;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .article-title a {
+    color: inherit; text-decoration: none;
+  }
+  .article-title a:hover { color: #3b82f6; }
+
+  .article-summary { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+
+  .article-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fund-tag {
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 600;
+    background: #dbeafe; color: #1d4ed8;
+  }
+  .select-btn {
+    margin-left: auto; font-size: 11px; padding: 3px 10px;
+    border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer;
+    background: white; color: var(--muted); transition: all .15s;
+  }
+  .select-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+  .select-btn.selected { background: #3b82f6; color: white; border-color: #3b82f6; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 48px 24px; color: var(--muted);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* No-data state */
+  .no-data-banner {
+    background: #fef9c3; border: 1px solid #fde047;
+    border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;
+    text-align: center;
+  }
+  .no-data-banner h3 { color: #854d0e; margin-bottom: 6px; font-size: 15px; }
+  .no-data-banner p { color: #713f12; font-size: 13px; line-height: 1.5; }
+  .no-data-banner code {
+    background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* Loading */
+  .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    aside { display: none; }
+    main { padding: 16px; max-width: 100%; }
+    .stats-bar { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Super<span>News</span> 🦘</h1>
+  <div class="header-right">
+    <span id="generated-at">Loading...</span>
+    <button class="btn btn-ghost" onclick="openEmailDigest()">📧 Email Digest</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside>
+    <!-- Fund Selector -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Filter by Fund</div>
+      <input type="text" id="fund-search" placeholder="Search funds…" oninput="filterFundList()">
+      <div id="fund-list">
+        <div class="fund-option active" data-fund="all" onclick="selectFund('all', this)">
+          🌏 All Funds / Industry View
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier Toggles -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content Tiers</div>
+      <div class="tier-toggle active" data-tier="1" onclick="toggleTier(1, this)">
+        📰 Media Articles <span class="tier-count" id="tc-1">0</span>
+      </div>
+      <div class="tier-toggle active" data-tier="2" onclick="toggleTier(2, this)">
+        🏛️ Regulatory <span class="tier-count" id="tc-2">0</span>
+      </div>
+      <div class="tier-toggle active" data-tier="3" onclick="toggleTier(3, this)">
+        📊 Industry Research <span class="tier-count" id="tc-3">0</span>
+      </div>
+      <div class="tier-toggle active" data-tier="4" onclick="toggleTier(4, this)">
+        💬 Social & Blogs <span class="tier-count" id="tc-4">0</span>
+      </div>
+    </div>
+
+    <!-- Topic Filter -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Topics</div>
+      <div id="topic-chips"></div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <div id="no-data-banner" class="no-data-banner" style="display:none">
+      <h3>⚠️ No data loaded yet</h3>
+      <p>Run the collection script to populate the database:<br>
+        <code>python3 collect.py</code><br><br>
+        Then refresh this page. The digest updates weekly every Friday.
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="stats-bar" style="display:none">
+      <div class="stat-card">
+        <div class="num" id="stat-total">0</div>
+        <div class="lbl">Total articles</div>
+      </div>
+      <div class="stat-card" style="border-left: 3px solid var(--t1)">
+        <div class="num" style="color:var(--t1)" id="stat-t1">0</div>
+        <div class="lbl">Media</div>
+      </div>
+      <div class="stat-card" style="border-left: 3px solid var(--t2)">
+        <div class="num" style="color:var(--t2)" id="stat-t2">0</div>
+        <div class="lbl">Regulatory</div>
+      </div>
+      <div class="stat-card" style="border-left: 3px solid var(--t3)">
+        <div class="num" style="color:var(--t3)" id="stat-t3">0</div>
+        <div class="lbl">Research</div>
+      </div>
+      <div class="stat-card" style="border-left: 3px solid var(--t4)">
+        <div class="num" style="color:var(--t4)" id="stat-t4">0</div>
+        <div class="lbl">Social</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar" id="search-bar" style="display:none">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Search articles, sources, topics…" oninput="renderArticles()">
+    </div>
+
+    <!-- Email digest builder bar -->
+    <div class="digest-bar" id="digest-bar" style="display:none">
+      <div>
+        <strong>📋 Email Digest Builder</strong>
+        <p><span id="digest-count">0</span> articles selected — click "Select" on any article to add it</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="selectAll()">Select all visible</button>
+        <button class="btn btn-ghost" onclick="clearSelection()">Clear</button>
+        <button class="btn btn-primary" onclick="openEmailDigest()">📧 Compose email</button>
+      </div>
+    </div>
+
+    <!-- Article feed -->
+    <div id="article-feed"><div class="loading">Loading digest…</div></div>
+  </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let allArticles = [];
+let allFunds = [];
+let activeFund = 'all';
+let activeTiers = new Set([1, 2, 3, 4]);
+let activeTopic = null;
+let selectedArticleIds = new Set();
+let allTopics = new Set();
+
+// ── Load Data ──────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    let data;
+    // Try fetch first (works when served via HTTP)
+    try {
+      const resp = await fetch('data.json?' + Date.now());
+      if (!resp.ok) throw new Error('fetch failed');
+      data = await resp.json();
+    } catch (fetchErr) {
+      // Fallback: check if data was embedded via <script> tag (for file:// protocol)
+      if (window.SUPERNEWS_DATA) {
+        data = window.SUPERNEWS_DATA;
+      } else {
+        throw new Error('No data.json found and no embedded data available. Serve via HTTP: python3 -m http.server 8888');
+      }
+    }
+    allArticles = data.articles || [];
+    allFunds = data.funds || [];
+
+    if (allArticles.length === 0) {
+      document.getElementById('no-data-banner').style.display = 'block';
+      document.getElementById('article-feed').innerHTML = '';
+      return;
+    }
+
+    // Generated at timestamp
+    const genDate = new Date(data.generated_at);
+    document.getElementById('generated-at').textContent =
+      'Updated ' + genDate.toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+
+    // Collect topics
+    allArticles.forEach(a => { if (a.topic) allTopics.add(a.topic); });
+
+    renderFundList();
+    renderTopicChips();
+    updateStats();
+    renderArticles();
+
+    // Show UI
+    document.getElementById('stats-bar').style.display = 'flex';
+    document.getElementById('search-bar').style.display = 'block';
+    document.getElementById('digest-bar').style.display = 'flex';
+
+  } catch (e) {
+    document.getElementById('no-data-banner').style.display = 'block';
+    document.getElementById('article-feed').innerHTML = '';
+    console.error(e);
+  }
+}
+
+// ── Fund List ──────────────────────────────────────────────────────────────
+function renderFundList(filter = '') {
+  const list = document.getElementById('fund-list');
+  const grouped = {};
+  allFunds.forEach(f => {
+    if (filter && !f.display_name.toLowerCase().includes(filter.toLowerCase())) return;
+    const type = f.fund_type || 'Other';
+    if (!grouped[type]) grouped[type] = [];
+    grouped[type].push(f);
+  });
+
+  const typeOrder = ['Industry', 'Public Sector', 'Corporate', 'Retail', 'Other'];
+  let html = `<div class="fund-option ${activeFund === 'all' ? 'active' : ''}"
+    data-fund="all" onclick="selectFund('all', this)">🌏 All Funds / Industry</div>`;
+
+  typeOrder.forEach(type => {
+    if (!grouped[type]) return;
+    html += `<div class="fund-type-group">
+      <div class="fund-type-label">${type}</div>`;
+    grouped[type].forEach(f => {
+      // Show count of articles tagged to this fund
+      const count = allArticles.filter(a => a.fund_ids.includes(f.fund_id)).length;
+      if (filter && count === 0) return;
+      html += `<div class="fund-option ${activeFund === f.fund_id ? 'active' : ''}"
+        data-fund="${f.fund_id}" onclick="selectFund('${f.fund_id}', this)">
+        ${f.display_name}
+        ${count > 0 ? `<span style="margin-left:auto;font-size:10px;color:#94a3b8">${count}</span>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function filterFundList() {
+  const q = document.getElementById('fund-search').value;
+  renderFundList(q);
+}
+
+function selectFund(fundId, el) {
+  activeFund = fundId;
+  document.querySelectorAll('.fund-option').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderArticles();
+}
+
+// ── Tier Toggles ──────────────────────────────────────────────────────────
+function toggleTier(tier, el) {
+  if (activeTiers.has(tier)) {
+    activeTiers.delete(tier);
+    el.classList.remove('active');
+  } else {
+    activeTiers.add(tier);
+    el.classList.add('active');
+  }
+  renderArticles();
+}
+
+// ── Topic Filter ──────────────────────────────────────────────────────────
+function renderTopicChips() {
+  const sorted = Array.from(allTopics).sort();
+  const container = document.getElementById('topic-chips');
+  container.innerHTML = sorted.map(t =>
+    `<span class="topic-chip ${activeTopic === t ? 'active' : ''}"
+      onclick="selectTopic('${t}')">${t}</span>`
+  ).join('');
+}
+
+function selectTopic(topic) {
+  activeTopic = activeTopic === topic ? null : topic;
+  renderTopicChips();
+  renderArticles();
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const byTier = {1:0, 2:0, 3:0, 4:0};
+  allArticles.forEach(a => byTier[a.tier] = (byTier[a.tier] || 0) + 1);
+  document.getElementById('stat-total').textContent = allArticles.length;
+  for (let t = 1; t <= 4; t++) {
+    document.getElementById(`stat-t${t}`).textContent = byTier[t] || 0;
+    document.getElementById(`tc-${t}`).textContent = byTier[t] || 0;
+  }
+}
+
+// ── Filter Articles ────────────────────────────────────────────────────────
+function getFilteredArticles() {
+  const searchQ = (document.getElementById('search')?.value || '').toLowerCase();
+  return allArticles.filter(a => {
+    if (!activeTiers.has(a.tier)) return false;
+    if (activeFund !== 'all' && !a.fund_ids.includes(activeFund)) return false;
+    if (activeTopic && a.topic !== activeTopic) return false;
+    if (searchQ) {
+      const haystack = (a.title + ' ' + a.source + ' ' + (a.summary || '') + ' ' + (a.topic || '')).toLowerCase();
+      if (!haystack.includes(searchQ)) return false;
+    }
+    return true;
+  });
+}
+
+// ── Render Articles ────────────────────────────────────────────────────────
+function renderArticles() {
+  const filtered = getFilteredArticles();
+  const feed = document.getElementById('article-feed');
+
+  if (filtered.length === 0) {
+    feed.innerHTML = `<div class="empty-state">
+      <div class="icon">🔍</div>
+      <p>No articles match the current filters.<br>Try adjusting your fund or tier selection.</p>
+    </div>`;
+    return;
+  }
+
+  // Group by tier
+  const byTier = {1:[], 2:[], 3:[], 4:[]};
+  filtered.forEach(a => byTier[a.tier].push(a));
+
+  const tierMeta = {
+    1: { label: 'Media Articles', icon: '📰', color: '--t1' },
+    2: { label: 'Regulatory & Government', icon: '🏛️', color: '--t2' },
+    3: { label: 'Industry Bodies & Research', icon: '📊', color: '--t3' },
+    4: { label: 'Social Media & Blogs', icon: '💬', color: '--t4' },
+  };
+
+  let html = '';
+  for (let tier = 1; tier <= 4; tier++) {
+    const arts = byTier[tier];
+    if (!arts.length) continue;
+    const m = tierMeta[tier];
+    html += `<div class="tier-section" id="tier-section-${tier}">
+      <div class="tier-header">
+        <span class="tier-badge" data-tier="${tier}">${m.icon} ${m.label}</span>
+        <span class="tier-article-count">${arts.length} article${arts.length !== 1 ? 's' : ''}</span>
+      </div>`;
+    arts.forEach(a => {
+      html += renderArticleCard(a);
+    });
+    html += '</div>';
+  }
+
+  feed.innerHTML = html;
+  updateDigestCount();
+}
+
+function renderArticleCard(a) {
+  const isSelected = selectedArticleIds.has(a.id);
+  const dateStr = a.published_at
+    ? new Date(a.published_at).toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'})
+    : (a.collected_at ? new Date(a.collected_at).toLocaleDateString('en-AU', {day:'numeric', month:'short'}) : '');
+
+  const fundTags = a.fund_ids.map(fid => {
+    const fund = allFunds.find(f => f.fund_id === fid);
+    return fund ? `<span class="fund-tag">${fund.display_name}</span>` : '';
+  }).join('');  return `<div class="article-card ${isSelected ? 'selected' : ''}" data-tier="${a.tier}" id="card-${a.id}">
+    <div class="article-meta">
+      <span class="article-source">${escHtml(a.source)}</span>
+      ${dateStr ? `<span class="article-dot">·</span><span class="article-date">${dateStr}</span>` : ''}
+      ${a.topic ? `<span class="article-topic">${escHtml(a.topic)}</span>` : ''}
+    </div>
+    <div class="article-title">
+      <a href="${escHtml(a.url)}" target="_blank" rel="noopener">${escHtml(a.title)}</a>
+    </div>
+    ${a.summary ? `<div class="article-summary">${escHtml(a.summary.substring(0, 200))}${a.summary.length > 200 ? '…' : ''}</div>` : ''}
+    <div class="article-footer">
+      ${fundTags}
+      <button class="select-btn ${isSelected ? 'selected' : ''}"
+        onclick="toggleSelect('${a.id}', this)">
+        ${isSelected ? '✓ Selected' : '+ Select'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Selection & Email Digest ───────────────────────────────────────────────
+function toggleSelect(articleId, btn) {
+  if (selectedArticleIds.has(articleId)) {
+    selectedArticleIds.delete(articleId);
+    btn.textContent = '+ Select';
+    btn.classList.remove('selected');
+    document.getElementById('card-' + articleId)?.classList.remove('selected');
+  } else {
+    selectedArticleIds.add(articleId);
+    btn.textContent = '✓ Selected';
+    btn.classList.add('selected');
+    document.getElementById('card-' + articleId)?.classList.add('selected');
+  }
+  updateDigestCount();
+}
+
+function updateDigestCount() {
+  document.getElementById('digest-count').textContent = selectedArticleIds.size;
+}
+
+function selectAll() {
+  getFilteredArticles().forEach(a => selectedArticleIds.add(a.id));
+  renderArticles();
+}
+
+function clearSelection() {
+  selectedArticleIds.clear();
+  renderArticles();
+}
+
+function openEmailDigest() {
+  const selected = selectedArticleIds.size > 0
+    ? allArticles.filter(a => selectedArticleIds.has(a.id))
+    : getFilteredArticles().slice(0, 20);
+
+  if (selected.length === 0) {
+    alert('No articles selected. Use the "Select all visible" button or click "+ Select" on individual articles.');
+    return;
+  }
+
+  // Build email body grouped by tier
+  const tierNames = {1:'Media Articles', 2:'Regulatory & Government', 3:'Industry Bodies & Research', 4:'Social Media & Blogs'};
+  const byTier = {1:[], 2:[], 3:[], 4:[]};
+  selected.forEach(a => byTier[a.tier].push(a));
+
+  const weekStr = new Date().toLocaleDateString('en-AU', {day:'numeric', month:'long', year:'numeric'});
+  let subject = `Australian Superannuation News Digest — Week of ${weekStr}`;
+  let body = `AUSTRALIAN SUPERANNUATION NEWS DIGEST\nWeek of ${weekStr}\n\n`;
+
+  // Add fund context if filtered
+  if (activeFund !== 'all') {
+    const fund = allFunds.find(f => f.fund_id === activeFund);
+    if (fund) body += `FUND FOCUS: ${fund.display_name}\n${'='.repeat(50)}\n\n`;
+  }
+
+  for (let tier = 1; tier <= 4; tier++) {
+    const arts = byTier[tier];
+    if (!arts.length) continue;
+    body += `${tierNames[tier].toUpperCase()}\n${'─'.repeat(40)}\n\n`;
+    arts.forEach((a, i) => {
+      body += `${i+1}. ${a.title}\n`;
+      body += `   Source: ${a.source}\n`;
+      body += `   Link: ${a.url}\n`;
+      if (a.topic) body += `   Topic: ${a.topic}\n`;
+      if (a.summary) body += `   ${a.summary.substring(0, 150)}...\n`;
+      body += '\n';
+    });
+    body += '\n';
+  }
+
+  body += `─────────────────────────────────────────\n`;
+  body += `SuperNews — Australian Superannuation Intelligence\n`;
+  body += `${selected.length} articles | Generated ${new Date().toLocaleString('en-AU')}\n`;
+
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  // Open in a new window (handles long URLs better)
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(`
+      <html><head><title>Email Digest</title>
+      <style>
+        body { font-family: monospace; padding: 32px; max-width: 700px; }
+        h2 { font-family: sans-serif; }
+        textarea { width: 100%; height: 70vh; font-family: monospace; font-size: 13px; border: 1px solid #ddd; padding: 12px; }
+        .actions { margin-bottom: 16px; display: flex; gap: 8px; }
+        button { padding: 8px 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: 600; }
+        .open { background: #3b82f6; color: white; }
+        .copy { background: #f1f5f9; }
+      </style></head><body>
+      <h2>📧 Weekly Digest Ready</h2>
+      <div class="actions">
+        <a href="${mailtoLink}"><button class="open">Open in Mail app</button></a>
+        <button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('digest-text').value);this.textContent='Copied!'">Copy to clipboard</button>
+      </div>
+      <textarea id="digest-text" readonly>${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      </body></html>`);
+    win.document.close();
+  } else {
+    // Fallback: direct mailto
+    window.location.href = mailtoLink;
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
